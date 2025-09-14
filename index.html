@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>MindAR Color Marker AR</title>
+  <title>MindAR Fullscreen AR</title>
 
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
@@ -11,29 +11,42 @@
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.0/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { touch-action: none; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    a-scene {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
   </style>
 </head>
 
 <body>
-  <a-scene mindar-image="imageTargetSrc: target.mind;" 
-           color-space="sRGB" 
-           vr-mode-ui="enabled: false" 
-           embedded 
-           renderer="logarithmicDepthBuffer: true;">
+  <a-scene mindar-image="imageTargetSrc: target.mind;"
+           color-space="sRGB"
+           vr-mode-ui="enabled: false"
+           embedded
+           renderer="logarithmicDepthBuffer: true; antialias: true;">
     
     <!-- Camera -->
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- 3D Model attached to the tracked image -->
+    <!-- 3D Model -->
     <a-entity mindar-image-target="targetIndex: 0">
-      <a-entity 
-        gltf-model="model.glb" 
-        scale="0.5 0.5 0.5" 
-        position="0 0 0" 
-        rotation="0 180 0">
-      </a-entity>
+      <a-entity gltf-model="model.glb" scale="0.5 0.5 0.5" position="0 0 0" rotation="0 180 0"></a-entity>
     </a-entity>
 
   </a-scene>
