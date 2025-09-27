@@ -1,108 +1,158 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>AR.js + A-Frame Example</title>
+    <meta charset="utf-8" />
+    <title>AR.js + A-Frame | Capture & Switch Camera</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+    <!-- A-Frame + AR.js -->
     <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+
+    <style>
+      html, body {
+        margin: 0; padding: 0; height: 100%; overflow: hidden;
+        background: #000;
+        -webkit-user-select: none; user-select: none;
+      }
+      /* Simple overlay toolbar */
+      .toolbar {
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        display: flex; gap: 12px; justify-content: center;
+        padding: 12px env(safe-area-inset-left) calc(12px + env(safe-area-inset-bottom)) env(safe-area-inset-right);
+        z-index: 9;
+        pointer-events: none; /* allow scene interactions elsewhere */
+      }
+      .toolbar button {
+        pointer-events: auto;
+        font-size: 14px; font-weight: 600;
+        padding: 10px 14px; border-radius: 12px; border: none;
+        background: rgba(255,255,255,0.9);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+      }
+      .toolbar button:active { transform: translateY(1px); }
+      .top-hint {
+        position: fixed; top: env(safe-area-inset-top); left: 0; right: 0;
+        text-align: center; z-index: 9; color: #fff; font-size: 12px;
+        padding: 6px 10px;
+        text-shadow: 0 1px 2px rgba(0,0,0,.8);
+        pointer-events: none;
+      }
+      /* Optional: mirror front camera UI so it feels like a selfie preview */
+      .mirror-front canvas.mirror {
+        transform: scaleX(-1);
+      }
+    </style>
   </head>
-  <body style="margin: 0; overflow: hidden;">
-    <a-scene
-      embedded
-      arjs="trackingMethod: best; sourceType: webcam; debugUIEnabled: false;"
-      vr-mode-ui="enabled: false"
-    >
-      <!-- Marker -->
-      <a-marker type="pattern" url="p_ami.patt">
-        <a-entity
-          gltf-model="ami_lp.glb"
-          scale="0.5 0.5 0.5"
-          rotation="0 0 0"
-          animation-mixer
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear"
-        ></a-entity>
-      </a-marker>
 
-      <a-marker type="pattern" url="p_mei.patt">
-        <a-entity
-          gltf-model="mei.glb"
-          scale="0.9 0.9 0.9"
-          rotation="0 0 0"
-          animation-mixer
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear"
-        ></a-entity>
-      </a-marker>
+  <body>
+    <div class="top-hint">Point your camera at a marker</div>
 
-      <a-marker type="pattern" url="p_rea.patt">
-        <a-entity
-          gltf-model="rea.glb"
-          scale="0.9 0.9 0.9"
-          rotation="0 0 0"
-          animation-mixer
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear"
-        ></a-entity>
-      </a-marker>
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button id="captureBtn">📸 Capture</button>
+      <button id="switchBtn">🔁 Switch Camera</button>
+    </div>
 
-      <a-marker type="pattern" url="p_rei.patt">
-        <a-entity
-          gltf-model="rei.glb"
-          scale="0.9 0.9 0.9"
-          rotation="0 0 0"
-          animation-mixer
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear"
-        ></a-entity>
-      </a-marker>
+    <script>
+      // We recreate the scene when switching cameras.
+      // Keep state here:
+      const params = new URLSearchParams(location.search);
+      let facingMode = params.get('facing') === 'user' ? 'user' : 'environment'; // default: back camera
 
-      <a-marker type="pattern" url="p_suzu.patt">
-        <a-entity
-          gltf-model="suzu.glb"
-          scale="0.9 0.9 0.9"
-          rotation="0 0 0"
-          animation-mixer
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear"
-        ></a-entity>
-      </a-marker>
+      // simple helper to build the scene HTML with desired facingMode
+      function buildSceneHTML(facing) {
+        return `
+          <a-scene
+            embedded
+            renderer="alpha: true; antialias: true; preserveDrawingBuffer: true"
+            arjs="trackingMethod: best; sourceType: webcam; facingMode: ${facing}; debugUIEnabled: false;"
+            vr-mode-ui="enabled: false"
+          >
+            <!-- Marker 1 + Model 1 -->
+            <a-marker type="pattern" url="markers/p_ami.patt">
+              <a-entity
+                gltf-model="models/ami.glb"
+                scale="0.5 0.5 0.5"
+                rotation="0 0 0"
+                animation="property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear"
+              ></a-entity>
+            </a-marker>
 
-      <a-marker type="pattern" url="p_yume.patt">
-        <a-entity
-          gltf-model="yume.glb"
-          scale="0.9 0.9 0.9"
-          rotation="0 0 0"
-          animation-mixer
-          animation="property: rotation; to: 0 360 0; loop: true; dur: 8000; easing: linear"
-        ></a-entity>
-      </a-marker>
+            <!-- Marker 2 + Model 2 -->
+            <a-marker type="pattern" url="markers/p_suzu.patt">
+              <a-entity
+                gltf-model="models/suzu.glb"
+                scale="0.5 0.5 0.5"
+                rotation="0 0 0"
+                animation="property: rotation; to: 0 -360 0; loop: true; dur: 8000; easing: linear"
+              ></a-entity>
+            </a-marker>
 
-      <!-- Camera -->
-      <a-entity camera></a-entity>
-    </a-scene>
+            <!-- Camera -->
+            <a-entity camera></a-entity>
+          </a-scene>
+        `;
+      }
+
+      // mount scene
+      function mountScene() {
+        // Remove old scene if exists
+        const old = document.querySelector('a-scene');
+        if (old) old.parentNode.removeChild(old);
+
+        // Insert new scene
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = buildSceneHTML(facingMode).trim();
+        document.body.appendChild(wrapper.firstChild);
+
+        // Apply mirror class if front camera
+        const scene = document.querySelector('a-scene');
+        scene.addEventListener('loaded', () => {
+          const canvas = scene.canvas;
+          if (!canvas) return;
+          if (facingMode === 'user') {
+            canvas.classList.add('mirror');
+            document.body.classList.add('mirror-front');
+          } else {
+            canvas.classList.remove('mirror');
+            document.body.classList.remove('mirror-front');
+          }
+        });
+      }
+
+      mountScene();
+
+      // Capture: grab the WebGL canvas output and download it
+      document.getElementById('captureBtn').addEventListener('click', () => {
+        const scene = document.querySelector('a-scene');
+        const canvas = scene && scene.canvas;
+        if (!canvas) return;
+
+        try {
+          const dataURL = canvas.toDataURL('image/png'); // requires preserveDrawingBuffer
+          const a = document.createElement('a');
+          a.href = dataURL;
+          const ts = new Date().toISOString().replace(/[:.]/g, '-');
+          a.download = `ar-capture-${ts}.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        } catch (e) {
+          alert('Capture not supported on this device/browser.');
+          console.error(e);
+        }
+      });
+
+      // Switch camera: toggle facingMode and rebuild scene
+      document.getElementById('switchBtn').addEventListener('click', () => {
+        facingMode = (facingMode === 'environment') ? 'user' : 'environment';
+        // Keep URL in sync (helps debugging / bookmarking):
+        const url = new URL(location.href);
+        url.searchParams.set('facing', facingMode);
+        history.replaceState(null, '', url.toString());
+        mountScene();
+      });
+    </script>
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
